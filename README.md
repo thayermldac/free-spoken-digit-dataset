@@ -1,4 +1,4 @@
-# Forked Repo Introduction
+# Fork Introduction
 I forked this dataset from the [original repo](https://github.com/Jakobovski/free-spoken-digit-dataset) in order to add utility functions and set it up for out-of-the-box use in training and testing machine learning models. 
 
 
