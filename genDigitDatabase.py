@@ -16,6 +16,8 @@ import librosa
 import pandas as pd
 import cPickle as pickle
 
+from tqdm import tqdm
+from subprocess import call
 
 #####################################
 ############  LOAD DATA  ############
@@ -44,41 +46,53 @@ Phase     = []
 SIndex    = []
 Class     = []
 
-    
+TStretch  = []
+PShift    = []
 
-for wavfile in wavfiles:
-    # Open audio file
-    y, sr = librosa.load(wavfile,sr=8000)
-    
-    # # Normalize by RMSE
-    # rmse = librosa.feature.rmse(y,hop_length=len(y)+1)[0][0]
-    # y = y/rmse
-    
-    ## Compute STFT
-    nfft = 128
-    hop  = nfft/2
-    s = librosa.stft(y,n_fft=nfft-1,hop_length=hop)
-    magnitude, phase = librosa.magphase(s) 
+fout='./.out.wav'    
 
-    magnitude = librosa.amplitude_to_db(magnitude)
-    phase     = np.angle(phase)
+for wavfile in tqdm(wavfiles):
+    for ts in [0.75,1,1.25]:
+            for ps in [-1,0,+1]:
+                # Generate augmentation using rubberband
+                if (ts==1 and ps==0):
+                    fout=wavfile
+                else:
+                    # dump  = !rubberband -t {ts} -p {ps} {wavfile} {fout}
+                    dump = call(['./rubberband','-t', str(ts), '-p', str(ps), wavfile, fout])
+                y,_   = librosa.load(fout,sr=Fs)
+                
+                # # Normalize by RMSE
+                # rmse = librosa.feature.rmse(y,hop_length=len(y)+1)[0][0]
+                # y = y/rmse
+                
+                ## Compute STFT
+                s = librosa.stft(y,n_fft=nfft-1,hop_length=hop)
+                magnitude, phase = librosa.magphase(s) 
 
-    # f = librosa.fft_frequencies(sr=sr,n_fft=nfft)
-    # t = librosa.frames_to_time(np.arange(0,S.shape[1]),sr=sr,hop_length=hop)
-    
+                magnitude = librosa.amplitude_to_db(magnitude)
+                phase     = np.angle(phase)
 
-    svar = re.split('[_/.]',wavfile)
+                # f = librosa.fft_frequencies(sr=sr,n_fft=nfft)
+                # t = librosa.frames_to_time(np.arange(0,S.shape[1]),sr=sr,hop_length=hop)
+                
 
-    Wave.append(y)
-    Magnitude.append(magnitude)
-    Phase.append(phase)
-    SIndex.append(int(svar[-2]))
-    Class.append(svar[-4])
+                svar = re.split('[_/.]',wavfile)
+
+                Wave.append(y)
+                Magnitude.append(magnitude)
+                Phase.append(phase)
+                SIndex.append(int(svar[-2]))
+                TStretch.append(ts)
+                PShift.append(ps)
+                Class.append(svar[-4])
     
 df =      pd.DataFrame({ 'Wave'         : pd.Series(Wave),
                          'Magnitude'    : pd.Series(Magnitude),
                          'Phase'        : pd.Series(Phase),
                          'SIndex'       : pd.Series(SIndex),
+                         'TStretch'     : pd.Series(TStretch),
+                         'PShift'       : pd.Series(PShift),
                          'Class'        : pd.Categorical(Class) })
 
 
