@@ -13,12 +13,11 @@ import re
 import sys
 import gzip
 import librosa
-import numpy as np
 import pandas as pd
 import cPickle as pickle
 
 from tqdm import tqdm
-from subprocess import call, Popen, PIPE
+from subprocess import call
 
 #####################################
 ############  LOAD DATA  ############
@@ -56,10 +55,11 @@ for wavfile in tqdm(wavfiles):
     for ts in [0.75,1,1.25]:
             for ps in [-1,0,+1]:
                 # Generate augmentation using rubberband
-                # dump  = !./rubberband -t {ts} -p {ps} {wavfile} {fout}
-                # dump = call(['./rubberband','-t', str(ts), '-p', str(ps), wavfile, fout])
-                dump = call(['./rubberband','-t', str(ts), '-p', str(ps), wavfile, fout],stdout=PIPE,stderr=PIPE)
-
+                if (ts==1 and ps==0):
+                    fout=wavfile
+                else:
+                    # dump  = !rubberband -t {ts} -p {ps} {wavfile} {fout}
+                    dump = call(['./rubberband','-t', str(ts), '-p', str(ps), wavfile, fout])
                 y,_   = librosa.load(fout,sr=Fs)
                 
                 # # Normalize by RMSE
@@ -99,10 +99,10 @@ df =      pd.DataFrame({ 'Wave'         : pd.Series(Wave),
 #####################################
 ############  SAVE DATA  ############
 #####################################
-# save_on=True  # save or load file
+save_on=True  # save or load file
 
-# dbfile ='SpokenDigitDB.pkl.gz'
-# if save_on:
-#     with gzip.open(dbfile, 'wb') as ifile:
-#         pickle.dump(df, ifile, 2)
-#         print('File saved as '+ dbfile)
+dbfile ='SpokenDigitDB.pkl.gz'
+if save_on:
+    with gzip.open(dbfile, 'wb') as ifile:
+        pickle.dump(df, ifile, 2)
+        print('File saved as '+ dbfile)
